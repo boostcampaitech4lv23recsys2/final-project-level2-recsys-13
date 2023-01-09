@@ -6,3 +6,4 @@ seed: 42
 batch: 128
 max_len: 512
 epoch: 10
+checkpoint: "microsoft/layoutlmv2-base-uncased"

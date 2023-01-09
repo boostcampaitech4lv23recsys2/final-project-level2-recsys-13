@@ -40,6 +40,7 @@ def main(config):
   
     
     # 모델 불러오고
+    model = AutoModelForQuestionAnswering.from_pretrained(args.checkpoint)
     
 
     # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler
