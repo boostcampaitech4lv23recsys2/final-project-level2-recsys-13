@@ -8,6 +8,7 @@ import torch
 from torch.utils.data import DataLoader
 
 
+
 def set_seed(seed):
     random.seed(seed)
     os.environ["PYTHONHASHSEED"] = str(seed)
@@ -33,11 +34,52 @@ def main(config):
     set_seed(config.seed)
   
     # load data
+    import pandas as pd
+    data = load_data()
+    df = pd.DataFrame(data['data'])
+
+    from datasets import Dataset
+    dataset = Dataset.from_pandas(df.iloc[:50])
+
+    feature_extractor = get_extractor(config)
+    
   
   
-    # 전처리 asd
-    # batch box 안에 있는 애들
-    tokenizer = tokenizer()
+    # 전처리 
+
+    from datasets import Features, Sequence, Value, Array2D, Array3D
+
+    # we need to define custom features
+    features = Features({
+        'input_ids': Sequence(feature=Value(dtype='int64')),
+        'bbox': Array2D(dtype="int64", shape=(512, 4)),
+        'attention_mask': Sequence(Value(dtype='int64')),
+        'token_type_ids': Sequence(Value(dtype='int64')),
+        'image': Array3D(dtype="int64", shape=(3, 224, 224)),
+        'start_positions': Value(dtype='int64'),
+        'end_positions': Value(dtype='int64'),
+    })
+
+    dataset_with_ocr = dataset.map(get_ocr_words_and_boxes, batched=True, batch_size=2)
+
+    encoded_dataset = dataset_with_ocr.map(encode_dataset, batched=True, batch_size=2, 
+                                        remove_columns=dataset_with_ocr.column_names,
+                                        features=features)
+
+
+    import torch
+    encoded_dataset.set_format(type="torch")
+    dataloader = torch.utils.data.DataLoader(encoded_dataset, batch_size=4)
+    batch = next(iter(dataloader))
+
+    idx = 2
+
+    tokenizer.decode(batch['input_ids'][2])
+
+    start_position = batch['start_positions'][idx].item()
+    end_position = batch['end_positions'][idx].item()
+
+    tokenizer.decode(batch['input_ids'][idx][start_position:end_position+1])
   
   
     
@@ -64,21 +106,18 @@ def main(config):
 if __name__ == '__main__':
     main()
     
-    
-import pandas as pd
-data = load_data()
-df = pd.DataFrame(data['data'])
 
-from datasets import Dataset
-dataset = Dataset.from_pandas(df.iloc[:50])
+def get_extractor(config):
+    from transformers import LayoutLMv2FeatureExtractor
+    if config.model == 'layoutlmv2':
+        return LayoutLMv2FeatureExtractor()
 
-from transformers import LayoutLMv2FeatureExtractor
-feature_extractor = LayoutLMv2FeatureExtractor()
 
 def get_ocr_words_and_boxes(examples):
     from PIL import Image
-
-    root_dir = '/opt/ml/input/data/val/'
+    global config, feature_extractor
+    
+    root_dir = config['data_dir'] + 'val/'
     # get a batch of document images
     images = [Image.open(root_dir + image_file).convert("RGB") for image_file in examples['image']]
     
@@ -91,7 +130,6 @@ def get_ocr_words_and_boxes(examples):
 
     return examples
 
-## dataset_with_ocr = dataset.map(get_ocr_words_and_boxes, batched=True, batch_size=2)
   
 
 def subfinder(words_list, answer_list):  
@@ -108,58 +146,10 @@ def subfinder(words_list, answer_list):
     else:
         return None, 0, 0
 
-# example
-question = "where is it located?"
-words = ["this", "is", "located", "in", "the", "university", "of", "california", "in", "the", "US"]
-boxes = [[1000,1000,1000,1000] for _ in range(len(words))]
-answer = "university of california"
-
-
-from transformers import AutoTokenizer
-model_checkpoint = "microsoft/layoutlmv2-base-uncased"
-tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
-
-import transformers
-assert isinstance(tokenizer, transformers.PreTrainedTokenizerFast)
-
-# encode the example
-encoding = tokenizer(question, words, boxes=boxes)
-tokenizer.decode(encoding.input_ids)
-
-# find the answer in the words
-match, word_idx_start, word_idx_end = subfinder(words, answer.split())
-
-sequence_ids = encoding.sequence_ids()
-
-def get_start_end_token(sequence_ids):
-    # Start token index of the current span in the text.
-    token_start_index = 0
-    while sequence_ids[token_start_index] != 1:
-        token_start_index += 1
-
-    # End token index of the current span in the text.
-    token_end_index = len(encoding.input_ids) - 1
-    while sequence_ids[token_end_index] != 1:
-        token_end_index -= 1
-
-    word_ids = encoding.word_ids()[token_start_index:token_end_index+1]
-
-    for id in word_ids:
-        if id == word_idx_start:
-            start_position = token_start_index 
-        else:
-            token_start_index += 1
-
-    for id in word_ids[::-1]:
-        if id == word_idx_end:
-            end_position = token_end_index 
-        else:
-            token_end_index -= 1
-
-## ??
-# tokenizer.decode(encoding.input_ids[start_position:end_position+1])
 
 def encode_dataset(examples, max_length=512):
+    global tokenizer
+
     # take a batch 
     questions = examples['question']
     words = examples['words']
@@ -235,57 +225,6 @@ def encode_dataset(examples, max_length=512):
     return encoding
 
 
-
-from datasets import Features, Sequence, Value, Array2D, Array3D
-
-# we need to define custom features
-features = Features({
-    'input_ids': Sequence(feature=Value(dtype='int64')),
-    'bbox': Array2D(dtype="int64", shape=(512, 4)),
-    'attention_mask': Sequence(Value(dtype='int64')),
-    'token_type_ids': Sequence(Value(dtype='int64')),
-    'image': Array3D(dtype="int64", shape=(3, 224, 224)),
-    'start_positions': Value(dtype='int64'),
-    'end_positions': Value(dtype='int64'),
-})
-
-dataset_with_ocr = dataset.map(get_ocr_words_and_boxes, batched=True, batch_size=2)
-
-encoded_dataset = dataset_with_ocr.map(encode_dataset, batched=True, batch_size=2, 
-                                       remove_columns=dataset_with_ocr.column_names,
-                                       features=features)
-
-from PIL import Image
-
-idx = 44
-tokenizer.decode(encoded_dataset['input_ids'][idx])
-
-image = Image.open('/opt/ml/input/data/val/' + dataset['image'][idx])
-
-start_position = encoded_dataset['start_positions'][idx]
-end_position = encoded_dataset['end_positions'][idx]
-if start_position != 0:
-  print(tokenizer.decode(encoded_dataset['input_ids'][idx][start_position: end_position+1]))
-else:
-  print("Answer not found in context")
-
-
-import torch
-encoded_dataset.set_format(type="torch")
-dataloader = torch.utils.data.DataLoader(encoded_dataset, batch_size=4)
-batch = next(iter(dataloader))
-
-idx = 2
-
-tokenizer.decode(batch['input_ids'][2])
-
-start_position = batch['start_positions'][idx].item()
-end_position = batch['end_positions'][idx].item()
-
-tokenizer.decode(batch['input_ids'][idx][start_position:end_position+1])
-
-    
-    
     
 class Trainer():
     def __init__(self, model, optimizer, config, train_data_loader, valid_data_loader, device):
@@ -342,6 +281,7 @@ class Trainer():
     def inference(self, idx):
         # step 1: pick a random example
         import json
+        from PIL import Image
         
         # path = config['data_dir'] + val/val_v1.0.json
         # '/content/drive/MyDrive/LayoutLMv2/Tutorial notebooks/DocVQA/val/val_v1.0.json'
