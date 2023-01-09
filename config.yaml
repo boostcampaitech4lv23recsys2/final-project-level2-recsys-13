@@ -1,0 +1,8 @@
+# python 3.8
+data_dir: "/opt/ml/input/data"
+model: "layoutlmv2"
+lr: 1e-4
+seed: 42
+batch: 128
+max_len: 512
+epoch: 10
