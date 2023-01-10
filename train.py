@@ -13,7 +13,7 @@ def main(config):
     
     # build optimizer, learning rate scheduler. delete every lines containing lr_scheduler for disabling scheduler
     from transformers import AdamW
-    optimizer = AdamW(model.parameters(), lr=5e-5)
+    optimizer = AdamW(model.parameters(), lr=config.lr)
 
     data_loader = DataLoader(config)
 
