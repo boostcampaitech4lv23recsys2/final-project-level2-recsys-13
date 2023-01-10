@@ -25,6 +25,30 @@ def load_data(config, mode):
 def get_extractor(config):
     if config.model == 'layoutlmv2':
         return LayoutLMv2FeatureExtractor()
+    
+def get_ocr_results(examples, config, mode):
+    ocr_root_dir = config.data_dir + "/" + mode + "/ocr_results/"
+    ids = examples['ucsf_document_id']
+    nums = examples['ucsf_document_page_no']
+    words = []
+    boxes = []
+    
+    for i in range(len(ids)):
+        with open(ocr_root_dir + ids[i] + "_" + nums[i] + ".json") as f:
+            ocr = json.load(f)
+        word = []
+        box = []
+        ### ocr['recognitionResults'][0]['lines']['words'] ??
+        for item in ocr['recognitionResults'][0]['lines']:
+            word.append(item['text'])
+            box.append(item['boundingBox'])
+        words.append(word)
+        boxes.append(box)
+
+    examples['words'] = words
+    examples['boxes'] = boxes
+    
+    return examples
 
 def get_ocr_words_and_boxes(examples, config, feature_extractor, mode):
     
