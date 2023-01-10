@@ -1,9 +1,10 @@
 # python 3.8
 data_dir: "/opt/ml/input/data"
 model: "layoutlmv2"
+device: "cuda"
 lr: 1e-4
 seed: 42
 batch: 128
 max_len: 512
-epoch: 10
+epochs: 10
 checkpoint: "microsoft/layoutlmv2-base-uncased"
