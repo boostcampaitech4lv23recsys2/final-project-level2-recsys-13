@@ -3,7 +3,7 @@ import torch
 from transformers import AutoTokenizer
 from datasets import Dataset
 from datasets import Features, Sequence, Value, Array2D, Array3D
-from utils.util import load_data, get_extractor, get_ocr_words_and_boxes, encode_dataset
+from utils.util import load_data, get_extractor, get_ocr_words_and_boxes, encode_dataset, get_ocr_results
 
 class DataLoader():
     def __init__(self, config):
