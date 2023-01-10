@@ -3,14 +3,14 @@ import torch
 
 class Trainer():
     def __init__(self, model, optimizer, config, train_data_loader, valid_data_loader, device):
-        self.model = model
+        self.model = model.to(device)
         self.optimizer = optimizer
         self.config = config
         self.train_data_loader = train_data_loader
         self.valid_data_loader = valid_data_loader
         self.device = device
         self.epochs = config['epochs']
-    
+
     def train(self):
         self.model.train()
         for epoch in range(self.epochs):
@@ -29,12 +29,12 @@ class Trainer():
 
                 # forward + backward + optimize
                 outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids,
-                            bbox=bbox, image=image, start_positions=start_positions, end_positions=end_positions)
+                                     bbox=bbox, image=image, start_positions=start_positions, end_positions=end_positions)
                 loss = outputs.loss
                 print("Loss:", loss.item())
                 loss.backward()
                 self.optimizer.step()
-    
+
     def validate(self):
         self.model.eval()
         with torch.no_grad():
@@ -48,21 +48,21 @@ class Trainer():
                 end_positions = batch["end_positions"].to(self.device)
 
                 outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids,
-                            bbox=bbox, image=image, start_positions=start_positions, end_positions=end_positions)
-    
+                                     bbox=bbox, image=image, start_positions=start_positions, end_positions=end_positions)
+
                 loss = outputs.loss
                 print("Loss:", loss.item())
-                
+
     def inference(self, idx, config):
         # step 1: pick a random example
         import json
         from PIL import Image
-        
+
         path = os.path.join(config['data_dir'], 'val/val_v1.0.json')
         # '/content/drive/MyDrive/LayoutLMv2/Tutorial notebooks/DocVQA/val/val_v1.0.json'
         with open(path) as f:
             data = json.load(f)
-            
+
         example = data['data'][idx]
         question = example['question']
         image = Image.open(config.data_dir + '/val/' + example['image']).convert("RGB")
