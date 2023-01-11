@@ -67,7 +67,7 @@ class DataLoader():
         
         print("\nencoding dataset...")
         self.tokenizer = AutoTokenizer.from_pretrained(self.config.checkpoint)
-        encode = lambda x: encode_dataset(x, self.tokenizer, config.mode)
+        encode = lambda x: encode_dataset(x, self.tokenizer, mode)
         # TODO: batch_size 하드코딩 제거
         if mode == 'train':
             train_encoded_dataset  = train_dataset_with_ocr.map(encode, batched=True, batch_size=config.batch_data,

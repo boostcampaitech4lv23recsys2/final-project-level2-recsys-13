@@ -117,7 +117,7 @@ def subfinder(words_list, answer_list):
         return None, 0, 0
 
 
-def encode_dataset(examples, tokenizer, mode, max_length=512):
+def encode_dataset(examples, tokenizer, mode='train', max_length=512):
     # take a batch
     questions = examples['question']
     words = examples['words']
@@ -128,71 +128,71 @@ def encode_dataset(examples, tokenizer, mode, max_length=512):
     encoding['image'] = examples['image']
     
     # next, add start_positions and end_positions
-    if mode!='test':
-        start_positions = []
-        end_positions = []
-        answers = examples['answers']
-        # for every example in the batch:
-        for batch_index in range(len(answers)):
-            cls_index = encoding.input_ids[batch_index].index(tokenizer.cls_token_id)
-            # try to find one of the answers in the context, return first match
-            words_example = [word.lower() for word in words[batch_index]]
-            for answer in answers[batch_index]:
-                match, word_idx_start, word_idx_end = subfinder(words_example, answer.lower().split())
-                if match:
-                    break
-            # EXPERIMENT (to account for when OCR context and answer don't perfectly match):
-            if not match:
-                for answer in answers[batch_index]:
-                    for i in range(len(answer)):
-                        # drop the ith character from the answer
-                        answer_i = answer[:i] + answer[i+1:]
-                        # check if we can find this one in the context
-                        match, word_idx_start, word_idx_end = subfinder(words_example, answer_i.lower().split())
-                        if match:
-                            break
-            # END OF EXPERIMENT
-
+    if mode == 'test':
+        encoding['start_positions'] = [0] * len(examples['question'])
+        encoding['end_positions']   = [0] * len(examples['question'])
+        return encoding
+    
+    start_positions = []
+    end_positions = []
+    answers = examples['answers']
+    # for every example in the batch:
+    for batch_index in range(len(answers)):
+        cls_index = encoding.input_ids[batch_index].index(tokenizer.cls_token_id)
+        # try to find one of the answers in the context, return first match
+        words_example = [word.lower() for word in words[batch_index]]
+        for answer in answers[batch_index]:
+            match, word_idx_start, word_idx_end = subfinder(words_example, answer.lower().split())
             if match:
-                sequence_ids = encoding.sequence_ids(batch_index)
-                # Start token index of the current span in the text.
-                token_start_index = 0
-                while sequence_ids[token_start_index] != 1:
+                break
+        # EXPERIMENT (to account for when OCR context and answer don't perfectly match):
+        if not match:
+            for answer in answers[batch_index]:
+                for i in range(len(answer)):
+                    # drop the ith character from the answer
+                    answer_i = answer[:i] + answer[i+1:]
+                    # check if we can find this one in the context
+                    match, word_idx_start, word_idx_end = subfinder(words_example, answer_i.lower().split())
+                    if match:
+                        break
+        # END OF EXPERIMENT
+
+        if match:
+            sequence_ids = encoding.sequence_ids(batch_index)
+            # Start token index of the current span in the text.
+            token_start_index = 0
+            while sequence_ids[token_start_index] != 1:
+                token_start_index += 1
+
+            # End token index of the current span in the text.
+            token_end_index = len(encoding.input_ids[batch_index]) - 1
+            while sequence_ids[token_end_index] != 1:
+                token_end_index -= 1
+
+            word_ids = encoding.word_ids(batch_index)[token_start_index:token_end_index+1]
+            for id in word_ids:
+                if id == word_idx_start:
+                    start_positions.append(token_start_index)
+                    break
+                else:
                     token_start_index += 1
 
-                # End token index of the current span in the text.
-                token_end_index = len(encoding.input_ids[batch_index]) - 1
-                while sequence_ids[token_end_index] != 1:
+            for id in word_ids[::-1]:
+                if id == word_idx_end:
+                    end_positions.append(token_end_index)
+                    break
+                else:
                     token_end_index -= 1
 
-                word_ids = encoding.word_ids(batch_index)[token_start_index:token_end_index+1]
-                for id in word_ids:
-                    if id == word_idx_start:
-                        start_positions.append(token_start_index)
-                        break
-                    else:
-                        token_start_index += 1
+            if batch_index >= len(start_positions) or \
+                    batch_index >= len(end_positions):
+                match = False
 
-                for id in word_ids[::-1]:
-                    if id == word_idx_end:
-                        end_positions.append(token_end_index)
-                        break
-                    else:
-                        token_end_index -= 1
+        if not match:
+            start_positions.append(cls_index)
+            end_positions.append(cls_index)
 
-                if batch_index >= len(start_positions) or \
-                        batch_index >= len(end_positions):
-                    match = False
-
-            if not match:
-                start_positions.append(cls_index)
-                end_positions.append(cls_index)
-
-    
-        encoding['start_positions'] = start_positions
-        encoding['end_positions'] = end_positions
-        
-    encoding['start_positions'] = [0]*len(examples['question'])
-    encoding['end_positions'] = [0]*len(examples['question'])
+    encoding['start_positions'] = start_positions
+    encoding['end_positions']   = end_positions
 
     return encoding
