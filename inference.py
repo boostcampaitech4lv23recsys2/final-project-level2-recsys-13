@@ -11,8 +11,8 @@ from transformers import AutoModelForQuestionAnswering
 @hydra.main(version_base="2.5", config_path=".", config_name="config.yaml")
 def main(config):
     model = AutoModelForQuestionAnswering.from_pretrained(config.checkpoint).to(config.device)
-    model.load_state_dict(torch.load(config.model_name))
-    data_loader = DataLoader(config)
+    # model.load_state_dict(torch.load(config.model_name))
+    data_loader = DataLoader(config, 'test')
     tokenizer = data_loader.tokenizer
     for idx, batch in enumerate(data_loader.test_data_loader):
         input_ids = batch["input_ids"].to(config.device)
