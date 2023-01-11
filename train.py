@@ -3,6 +3,8 @@ from transformers import AutoModelForQuestionAnswering
 from utils.util import set_seed
 from trainers.trainer import Trainer
 from data_loader.data_loaders import DataLoader
+import torch
+from datetime import datetime
 # export HYDRA_FULL_ERROR=1
 
 
@@ -28,6 +30,8 @@ def main(config):
                       )
 
     trainer.train()
+    torch.save(model.state_dict(), 'saved/'+config.model+str(datetime.now())+'.pt')
+    #model.save_pretrained("./models/bert-base-cased/")
     # trainer.validate()
     # trainer.inference(10, config)
 

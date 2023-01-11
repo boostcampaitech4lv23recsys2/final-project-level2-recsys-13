@@ -1,10 +1,20 @@
 # python 3.8
-data_dir: "/opt/ml/input/data"
+
+data_dir: "/opt/ml/input/data/"
 model: "layoutlmv2"
 device: "cuda"
+checkpoint: "microsoft/layoutlmv2-base-uncased"
+use_ocr_library: False
+debug: True
+batch_data: 1
+num_proc: 4
+
+# train.py
 lr: 1e-4
 seed: 42
 batch: 128
 max_len: 512
 epochs: 10
-checkpoint: "microsoft/layoutlmv2-base-uncased"
+
+# inference.py
+model_name: "saved/layoutlmv22023-01-11 02:52:04.692288.pt"
