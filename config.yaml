@@ -10,3 +10,7 @@ epochs: 10
 checkpoint: "microsoft/layoutlmv2-base-uncased"
 use_ocr_library: False
 debug: True
+batch_data: 1
+num_proc: 4
+model_name: "saved/layoutlmv22023-01-11 02:52:04.692288.pt"
+mode: "test"
