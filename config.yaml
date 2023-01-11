@@ -8,3 +8,5 @@ batch: 128
 max_len: 512
 epochs: 10
 checkpoint: "microsoft/layoutlmv2-base-uncased"
+use_ocr_library: False
+debug: True

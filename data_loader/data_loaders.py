@@ -22,10 +22,9 @@ class DataLoader():
 
         train_len, valid_len = len(train_df), len(valid_df)
         
-        debug = True
         
-        if debug:
-            train_len, valid_len = 1, 1
+        if config.debug:
+            train_len, valid_len = 50, 50
             
         train_dataset = Dataset.from_pandas(train_df.iloc[:train_len])
         valid_dataset = Dataset.from_pandas(valid_df.iloc[:valid_len])
@@ -44,8 +43,7 @@ class DataLoader():
         })
 
         print("processing dataset...")
-        use_ocr_library = False
-        if use_ocr_library:
+        if config.use_ocr_library:
             feature_extractor = get_extractor(self.config)
             train_preprocess = lambda x: get_ocr_words_and_boxes(x, self.config, feature_extractor, 'train')
             valid_preprocess = lambda x: get_ocr_words_and_boxes(x, self.config, feature_extractor, 'val')
