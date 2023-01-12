@@ -200,3 +200,58 @@ def encode_dataset(examples, tokenizer, mode='train', max_length=512):
     encoding['end_positions']   = end_positions
 
     return encoding
+
+
+def predict(outputs):
+    start_logits = outputs.start_logits
+    end_logits = outputs.end_logits
+    
+    predicted_start_idx_list = []
+    predicted_end_idx_list = []
+
+    # TODO vectorized code로 바꾸기 
+    for i in range(len(start_logits)):
+        predicted_start_idx = 0
+        predicted_end_idx = 0
+        max_score = -float('inf')
+        for start in range(len(start_logits[i])):
+            for end in range(start, len(end_logits[i])):
+                score = start_logits[i][start] + end_logits[i][end]
+                if score > max_score:
+                    max_score = score
+                    predicted_start_idx = start
+                    predicted_end_idx = end
+        predicted_start_idx_list.append(predicted_start_idx)
+        predicted_end_idx_list.append(predicted_end_idx)
+    
+    
+    
+    return predicted_start_idx_list, predicted_end_idx_list
+
+
+def predict_start_first(outputs):
+    start_logits = outputs.start_logits
+    end_logits = outputs.end_logits
+    
+    predicted_start_idx_list = []
+    predicted_end_idx_list = []
+    
+    start_position = start_logits.argmax(1)
+
+    # TODO vectorized code로 바꾸기 
+    for i in range(len(start_logits)):
+        
+        start = start_position[i]
+        predicted_start_idx_list.append(start)
+        max_score = -float('inf')
+        predicted_end_idx = 0
+        
+        for end in range(start, len(end_logits[i])):
+            score = end_logits[i][end]
+            if score > max_score:
+                max_score = score
+                predicted_end_idx = end
+                
+        predicted_end_idx_list.append(predicted_end_idx)
+    
+    return predicted_start_idx_list, predicted_end_idx_list
