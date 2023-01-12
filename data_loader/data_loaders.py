@@ -68,10 +68,9 @@ class DataLoader():
         print("\nencoding dataset...")
         self.tokenizer = AutoTokenizer.from_pretrained(self.config.checkpoint)
         encode = lambda x: encode_dataset(x, self.tokenizer, mode)
-        # TODO: batch_size 하드코딩 제거
+        
         if mode == 'train':
-            train_encoded_dataset  = train_dataset_with_ocr.map(encode, batched=True, batch_size=config.batch_data,
-                                                            remove_columns=train_dataset_with_ocr.column_names,
+            train_encoded_dataset  = train_dataset_with_ocr.map(encode, batched=True, batch_size=config.batch_data,remove_columns=train_dataset_with_ocr.column_names,
                                                             features=features, num_proc = config.num_proc)
             valid_encoded_dataset  = valid_dataset_with_ocr.map(encode, batched=True, batch_size=config.batch_data,
                                                             remove_columns=valid_dataset_with_ocr.column_names,

@@ -107,6 +107,8 @@ def subfinder(words_list, answer_list):
     start_indices = []
     end_indices = []
     for idx, i in enumerate(range(len(words_list))):
+        if len(answer_list) == 0:
+            continue
         if words_list[i] == answer_list[0] and words_list[i:i+len(answer_list)] == answer_list:
             matches.append(answer_list)
             start_indices.append(idx)
@@ -155,6 +157,8 @@ def encode_dataset(examples, tokenizer, mode='train', max_length=512):
                     match, word_idx_start, word_idx_end = subfinder(words_example, answer_i.lower().split())
                     if match:
                         break
+                if match:
+                    break
         # END OF EXPERIMENT
 
         if match:

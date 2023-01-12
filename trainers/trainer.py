@@ -1,5 +1,11 @@
 import os
 import torch
+from utils.metric import ANLS
+
+answers = ['coca cola', 'coca cola company']
+preds = ['the coca', 'cocacola', 'coca cola', 'cola', 'cat']
+
+print(ANLS(answers, 'the coca'))
 
 class Trainer():
     def __init__(self, model, optimizer, config, train_data_loader, valid_data_loader, device):

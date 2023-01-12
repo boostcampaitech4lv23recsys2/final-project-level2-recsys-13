@@ -2,6 +2,7 @@ import argparse
 import torch
 from tqdm import tqdm
 import hydra
+import numpy as np
 from PIL import Image
 import json
 from data_loader.data_loaders import DataLoader
@@ -14,7 +15,7 @@ def main(config):
     # model.load_state_dict(torch.load(config.model_name))
     data_loader = DataLoader(config, 'test')
     tokenizer = data_loader.tokenizer
-    for idx, batch in enumerate(data_loader.test_data_loader):
+    for idx, batch in tqdm(enumerate(data_loader.test_data_loader)):
         input_ids = batch["input_ids"].to(config.device)
         attention_mask = batch["attention_mask"].to(config.device)
         token_type_ids = batch["token_type_ids"].to(config.device)
@@ -23,26 +24,56 @@ def main(config):
 
         # forward + backward + optimize
 
-
-        outputs = model(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids,
+        with torch.no_grad():
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids,
                                 bbox=bbox, image=image)
         
-        start_logits = outputs.start_logits
-        end_logits = outputs.end_logits
+        predicted_start_idx, predicted_end_idx = predict(outputs)
+        
+        for i in range(batch['input_ids'].shape[0]):
+            print(tokenizer.decode(batch['input_ids'][i, predicted_start_idx[i]:predicted_end_idx[i]+1]))
 
-        max_score = -float('inf')
+
+def predict(outputs):
+    start_logits = outputs.start_logits
+    end_logits = outputs.end_logits
+    
+    predicted_start_idx_list = []
+    predicted_end_idx_list = []
+
+    # TODO vectorized code로 바꾸기 
+    for i in range(len(start_logits)):
         predicted_start_idx = 0
         predicted_end_idx = 0
-
-        for start in range(len(start_logits[0])):
-            for end in range(start, len(end_logits[0])):
-                score = start_logits[0][start] + end_logits[0][end]
+        max_score = -float('inf')
+        for start in range(len(start_logits[i])):
+            for end in range(start, len(end_logits[i])):
+                score = start_logits[i][start] + end_logits[i][end]
                 if score > max_score:
                     max_score = score
                     predicted_start_idx = start
                     predicted_end_idx = end
-        
-        print(tokenizer.decode(batch['input_ids'].squeeze()[predicted_start_idx:predicted_end_idx+1]))
+        predicted_start_idx_list.append(predicted_start_idx)
+        predicted_end_idx_list.append(predicted_end_idx)
+    
+    return predicted_start_idx_list, predicted_end_idx_list
+
+
+
+
+def predict_vec(outputs):
+    start_logits = outputs.start_logits
+    end_logits = outputs.end_logits
+
+    start_logits = np.array(start_logits)
+    end_logits = np.array(end_logits)
+    
+    # Compute the max score and corresponding indices for each input
+    max_scores = np.amax(start_logits[:,:,np.newaxis] + end_logits[:,np.newaxis,:], axis=(1,2))
+    predicted_start_idx = np.argmax(start_logits, axis=1)
+    predicted_end_idx = np.argmax(end_logits, axis=1)
+    
+    return predicted_start_idx, predicted_end_idx
 
 
         
