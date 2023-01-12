@@ -1,3 +1,4 @@
+import os
 import hydra
 from transformers import AutoModelForQuestionAnswering
 from utils.util import set_seed
@@ -24,15 +25,19 @@ def main(config):
     trainer = Trainer(model,
                       optimizer,
                       config=config,
-                      train_data_loader=data_loader.train_data_loader,
-                      valid_data_loader=data_loader.valid_data_loader,
+                      data_loader=data_loader,
                       device=config.device
                       )
 
+    print("training...")
     trainer.train()
+    if not os.path.exists('saved/'):
+        os.mkdir('saved/')
     torch.save(model.state_dict(), 'saved/'+config.model+str(datetime.now())+'.pt')
     #model.save_pretrained("./models/bert-base-cased/")
-    # trainer.validate()
+    
+    print("validating...")
+    trainer.validate()
     # trainer.inference(10, config)
 
 

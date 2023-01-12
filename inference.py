@@ -8,6 +8,8 @@ import json
 from data_loader.data_loaders import DataLoader
 from transformers import AutoModelForQuestionAnswering
 
+from utils.util import predict
+
 
 @hydra.main(version_base="2.5", config_path=".", config_name="config.yaml")
 def main(config):
@@ -34,29 +36,7 @@ def main(config):
             print(tokenizer.decode(batch['input_ids'][i, predicted_start_idx[i]:predicted_end_idx[i]+1]))
 
 
-def predict(outputs):
-    start_logits = outputs.start_logits
-    end_logits = outputs.end_logits
-    
-    predicted_start_idx_list = []
-    predicted_end_idx_list = []
 
-    # TODO vectorized code로 바꾸기 
-    for i in range(len(start_logits)):
-        predicted_start_idx = 0
-        predicted_end_idx = 0
-        max_score = -float('inf')
-        for start in range(len(start_logits[i])):
-            for end in range(start, len(end_logits[i])):
-                score = start_logits[i][start] + end_logits[i][end]
-                if score > max_score:
-                    max_score = score
-                    predicted_start_idx = start
-                    predicted_end_idx = end
-        predicted_start_idx_list.append(predicted_start_idx)
-        predicted_end_idx_list.append(predicted_end_idx)
-    
-    return predicted_start_idx_list, predicted_end_idx_list
 
 
 

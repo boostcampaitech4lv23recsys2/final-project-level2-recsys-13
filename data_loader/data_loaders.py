@@ -21,9 +21,10 @@ class DataLoader():
         train_df    = pd.DataFrame(train_data['data'])
         valid_df    = pd.DataFrame(valid_data['data'])
         test_df     = pd.DataFrame(test_data['data'])
+        self.answers = valid_df['answers']
         
         if config.debug:
-            train_dataset = Dataset.from_pandas(train_df.iloc[:10])
+            train_dataset = Dataset.from_pandas(train_df.iloc[:100])
             valid_dataset = Dataset.from_pandas(valid_df.iloc[:10])
             test_dataset  = Dataset.from_pandas(test_df.iloc[:10])
         
