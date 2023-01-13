@@ -107,9 +107,7 @@ saved/
 datasets/
 outputs/
 .DS_Store
-Fine_tuning_LayoutLMv2ForQuestionAnswering_on_DocVQA_ipynb\354\235\230_\354\202\254\353\263\270.ipynb
-asdfasdf.ipynb
-asdfasdfzx1vczxcv.ipynb
+*.ipynb
 
 # editor, os cache directory
 .vscode/

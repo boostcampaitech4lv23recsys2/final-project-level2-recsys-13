@@ -59,8 +59,7 @@ def get_ocr_results(examples, config, mode):
                 x1, y1, x2, y2, x3, y3, x4, y4 = boundingBox
                 xs, ys = [x1, x2, x3, x4], [y1, y2, y3, y4]
                 x_max, x_min, y_max, y_min = max(xs), min(xs), max(ys), min(ys)
-                if x_max - x_min == 0 or y_max - y_min == 0:
-                    continue
+                
                 left, upper, right, lower = normalize_bbox(
                     [x_min, y_min, x_max, y_max], image_width, image_height)
                 assert all(0 <= (each) <= 1000 for each in [
