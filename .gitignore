@@ -108,6 +108,8 @@ datasets/
 outputs/
 .DS_Store
 *.ipynb
+wandb/
+submission/
 
 # editor, os cache directory
 .vscode/
