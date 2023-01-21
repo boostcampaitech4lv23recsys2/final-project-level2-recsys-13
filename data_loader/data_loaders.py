@@ -9,6 +9,7 @@ from utils.util import (
     get_ocr_results,
     get_ocr_words_and_boxes,
     encode_dataset,
+    encode_with_stride,
 )
 
 
@@ -69,13 +70,14 @@ class DataLoader():
         print("\nencoding dataset...")
         self.tokenizer = AutoTokenizer.from_pretrained(self.config.checkpoint)
         encode = lambda x: encode_dataset(x, self.tokenizer, mode)
+        # encode = lambda x: encode_with_stride(x, self.tokenizer, mode)
         
         if mode == 'train':
             train_encoded_dataset  = train_dataset_with_ocr.map(encode, batched=True, batch_size=config.batch_data,remove_columns=train_dataset_with_ocr.column_names,
-                                                            features=features, num_proc = config.num_proc)
+                                                                features=features, num_proc = config.num_proc)
             valid_encoded_dataset  = valid_dataset_with_ocr.map(encode, batched=True, batch_size=config.batch_data,
-                                                            remove_columns=valid_dataset_with_ocr.column_names,
-                                                            features=features, num_proc = config.num_proc)
+                                                                remove_columns=valid_dataset_with_ocr.column_names,
+                                                                features=features, num_proc = config.num_proc)
             
             print("# of \"answer not found\" (train):",
                 sum(x == 0 for x in train_encoded_dataset['start_positions']))
