@@ -130,6 +130,8 @@ def encode_dataset(examples, tokenizer, mode='train', max_length=512):
     
     # next, add start_positions and end_positions
     if mode == 'test':
+        encoding['word_ids']        = [[-1 if id is None else id for id in encoding.word_ids(i)] 
+                                       for i in range(len(examples['question']))]
         encoding['start_positions'] = [0] * len(examples['question'])
         encoding['end_positions']   = [0] * len(examples['question'])
         return encoding

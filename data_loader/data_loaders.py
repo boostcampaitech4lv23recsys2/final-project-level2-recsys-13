@@ -23,6 +23,8 @@ class DataLoader():
         valid_df    = pd.DataFrame(valid_data['data'])
         test_df     = pd.DataFrame(test_data['data'])
         self.answers = valid_df['answers']
+        if mode == 'test':
+            self.test_df = test_df
         
         if config.debug:
             train_dataset = Dataset.from_pandas(train_df.iloc[:100])
@@ -93,6 +95,17 @@ class DataLoader():
                 valid_encoded_dataset, batch_size=config.batch_data)
             
         elif mode == 'test':
+            # features for test
+            features = Features({
+                'input_ids': Sequence(feature=Value(dtype='int64')),
+                'bbox': Array2D(dtype="int64", shape=(512, 4)),
+                'attention_mask': Sequence(Value(dtype='int64')),
+                'token_type_ids': Sequence(Value(dtype='int64')),
+                'image': Array3D(dtype="int64", shape=(3, 224, 224)),
+                'word_ids': Sequence(feature=Value(dtype='int64')),
+                'start_positions': Value(dtype='int64'),
+                'end_positions': Value(dtype='int64'),
+            })
             test_encoded_dataset = test_dataset_with_ocr.map(encode, batched=True, batch_size=config.batch_data,
                                                             remove_columns=test_dataset_with_ocr.column_names,
                                                             features=features, num_proc = config.num_proc)
