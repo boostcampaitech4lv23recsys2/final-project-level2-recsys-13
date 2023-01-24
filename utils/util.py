@@ -130,8 +130,8 @@ def fuzzy_matching(words_example, answer):
             match, start_idx, end_idx = target, i, i+(step-1)
 
     if max_ratio < 80:
-        return None, None, None
-    return match, start_idx, end_idx
+        return None, None, None, None
+    return match, start_idx, end_idx, max_ratio
 
 def logging(file_name, text):
     if not os.path.exists(f'/opt/ml/experiments/final-project-level2-recsys-13/{file_name}'):
