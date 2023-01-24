@@ -201,6 +201,98 @@ def encode_dataset(examples, tokenizer, mode='train', max_length=512):
     return encoding
 
 
+def encode_with_stride(examples, tokenizer, mode='train', max_length=512, doc_stride=128):
+    # take a batch
+    questions = examples['question']
+    words = examples['words']
+    boxes = examples['boxes']
+
+    # encode it
+    encoding = tokenizer(
+        questions, # examples["question"],
+        words, # examples["context"],
+        boxes,
+        truncation="only_second",  # max_seq_length까지 truncate한다. pair의 두번째 파트(context)만 잘라냄.
+        max_length=max_length,
+        stride=doc_stride,
+        return_overflowing_tokens=True, # 길이를 넘어가는 토큰들을 반환할 것인지
+        padding="max_length",
+    )
+    
+    # next, add start_positions and end_positions
+    if mode == 'test':
+        encoding['word_ids']        = [[-1 if id is None else id for id in encoding.word_ids(i)] 
+                                       for i in range(len(examples['question']))]
+        encoding['start_positions'] = [0] * len(examples['question'])
+        encoding['end_positions']   = [0] * len(examples['question'])
+        return encoding
+    
+    start_positions = []
+    end_positions = []
+    answers = examples['answers']
+    
+    # example 하나가 여러 sequence에 대응하는 경우를 위해 매핑이 필요함.
+    overflow_to_sample_mapping = encoding.pop("overflow_to_sample_mapping")
+    encoding['image'] = [examples['image'][0] for _ in range(len(overflow_to_sample_mapping))]
+    
+    for i, offsets in enumerate(overflow_to_sample_mapping):
+        input_ids = encoding['input_ids'][i]
+        cls_index = input_ids.index(tokenizer.cls_token_id)
+        
+        words_example = [word.lower() for word in words[offsets]]
+        for answer in answers[offsets]:
+            match, word_idx_start, word_idx_end = subfinder(words_example, answer.lower().split())
+            if match:
+                break
+        
+        if match:
+            # 해당 example에 해당하는 sequence 찾기
+            sequence_ids = encoding.sequence_ids(i)
+            
+            # Start token index of the current span in the text.
+            token_start_index = 0
+            while sequence_ids[token_start_index] != 1:
+                token_start_index += 1
+
+            # End token index of the current span in the text.
+            token_end_index = max_length - 1
+            while sequence_ids[token_end_index] != 1:
+                token_end_index -= 1
+            
+            word_ids = encoding.word_ids(i)[token_start_index:token_end_index+1]
+            match_start = False
+            for id in word_ids:
+                if id == word_idx_start:
+                    match_start = True
+                    break
+                else:
+                    token_start_index += 1
+            
+            match_end = False
+            for id in word_ids[::-1]:
+                if id == word_idx_end:
+                    match_end = True
+                    break
+                else:
+                    token_end_index -= 1
+            
+            if not match_start or not match_end:
+                match = False
+            
+        if match:
+            start_positions.append(token_start_index)
+            end_positions.append(token_end_index)
+        
+        else:
+            start_positions.append(cls_index)
+            end_positions.append(cls_index)    
+    
+    encoding['start_positions'] = start_positions
+    encoding['end_positions']   = end_positions
+    
+    return encoding
+
+
 def predict(outputs):
     start_logits = outputs.start_logits
     end_logits = outputs.end_logits
