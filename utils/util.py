@@ -184,12 +184,12 @@ def encode_dataset(examples, tokenizer, mode='train', max_length=512):
             max_ratio = 0
             for answer in answers[batch_index]:
                 curr_match, curr_word_idx_start, curr_word_idx_end, curr_ratio = fuzzy_matching(words_example, answer.lower().split())
-                if curr_ratio > max_ratio:
+                if curr_match and curr_ratio > max_ratio:
                     max_ratio = curr_ratio
                     match, word_idx_start, word_idx_end = curr_match, curr_word_idx_start, curr_word_idx_end
             # for logging
             if match:
-                formatted_string = f"answer: {answers[batch_index]}| match: {match}| word_idx_start: {word_idx_start}| word_idx_end: {word_idx_end}| max_ratio: {max_ratio}| question: | {questions[batch_index]} | ref: {examples['words'][batch_index]['ucsf_document_id']}_{examples['words'][batch_index]['ucsf_document_page_no']}"
+                formatted_string = f"answer: {answers[batch_index]}| match: {match}| word_idx_start: {word_idx_start}| word_idx_end: {word_idx_end}| max_ratio: {max_ratio}| question: | {questions[batch_index]} | ref: {examples['ucsf_document_id'][batch_index]}_{examples['ucsf_document_page_no'][batch_index]}"
                 logging('log_fuzzy_matching.txt', formatted_string)
         # END OF EXPERIMENT
 
@@ -206,9 +206,11 @@ def encode_dataset(examples, tokenizer, mode='train', max_length=512):
                 token_end_index -= 1
 
             word_ids = encoding.word_ids(batch_index)[token_start_index:token_end_index+1]
+            start_found, end_found = False, False
             for id in word_ids:
                 if id == word_idx_start:
                     start_positions.append(token_start_index)
+                    start_found = True
                     break
                 else:
                     token_start_index += 1
@@ -216,13 +218,18 @@ def encode_dataset(examples, tokenizer, mode='train', max_length=512):
             for id in word_ids[::-1]:
                 if id == word_idx_end:
                     end_positions.append(token_end_index)
+                    end_found = True
                     break
                 else:
                     token_end_index -= 1
 
             # start position은 추가되었는데 end position은 추가되지 않은 경우
-            if len(start_positions) == len(end_positions) + 1:
-                end_positions.append(token_start_index)
+            if start_found:
+                if not end_found:
+                    end_positions.append(token_start_index)
+            # start position도 추가되지 않은 경우
+            else:
+                match = False
 
         if not match:
             start_positions.append(cls_index)
