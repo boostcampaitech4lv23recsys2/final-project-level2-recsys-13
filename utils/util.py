@@ -220,9 +220,9 @@ def encode_dataset(examples, tokenizer, mode='train', max_length=512):
                 else:
                     token_end_index -= 1
 
-            if batch_index >= len(start_positions) or \
-                    batch_index >= len(end_positions):
-                match = False
+            # start position은 추가되었는데 end position은 추가되지 않은 경우
+            if len(start_positions) == len(end_positions) + 1:
+                end_positions.append(token_start_index)
 
         if not match:
             start_positions.append(cls_index)
