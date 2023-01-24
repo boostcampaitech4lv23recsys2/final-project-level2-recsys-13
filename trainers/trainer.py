@@ -23,7 +23,6 @@ class Trainer():
         for epoch in range(self.epochs):
             total_loss = 0
             for idx, batch in enumerate(self.train_data_loader):
-                # get the inputs;
                 input_ids       = batch["input_ids"].to(self.device)
                 attention_mask  = batch["attention_mask"].to(self.device)
                 token_type_ids  = batch["token_type_ids"].to(self.device)
@@ -32,7 +31,6 @@ class Trainer():
                 start_positions = batch["start_positions"].to(self.device)
                 end_positions   = batch["end_positions"].to(self.device)
                 
-                # TODO 지우기
                 input_ids       =       input_ids[start_positions != 0]
                 attention_mask  =  attention_mask[start_positions != 0]
                 token_type_ids  =  token_type_ids[start_positions != 0]
@@ -41,10 +39,12 @@ class Trainer():
                 end_positions   =   end_positions[start_positions != 0]
                 start_positions = start_positions[start_positions != 0]
 
-                # zero the parameter gradients
+                # 유효한 input이 없으면 continue
+                if len(start_positions) == 0:
+                    continue
+                
                 self.optimizer.zero_grad()
 
-                # forward + backward + optimize
                 outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids,
                                      bbox=bbox, image=image, start_positions=start_positions, end_positions=end_positions)
                 loss = outputs.loss
