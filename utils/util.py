@@ -5,6 +5,7 @@ import torch
 import random
 import numpy as np
 from transformers import LayoutLMv2FeatureExtractor
+from thefuzz import fuzz
 
 def set_seed(seed):
     random.seed(seed)
@@ -117,6 +118,36 @@ def subfinder(words_list, answer_list):
     else:
         return None, 0, 0
 
+def fuzzy_matching(words_example, answer):
+    step = len(answer)
+    max_ratio = 0
+    match, start_idx, end_idx = None, None, None
+    for i in range(0, len(words_example)):
+        target = words_example[i:i+step]
+        ratio = fuzz.ratio(target, answer)
+        if ratio > max_ratio:
+            max_ratio = ratio
+            match, start_idx, end_idx = target, i, i+(step-1)
+
+    if max_ratio < 80:
+        return None, None, None, None
+    return match, start_idx, end_idx, max_ratio
+
+def logging(file_name, text):
+    if not os.path.exists(f'/opt/ml/experiments/final-project-level2-recsys-13/{file_name}'):
+        with open(file_name, 'w') as f:
+            f.write('0')
+
+    with open(file_name, 'r') as f:
+        first_line = int(f.readline())
+        first_line += 1
+        prev_text = f.read()
+        
+    with open(file_name, 'w') as f:
+        f.write(str(first_line) + '\n')
+        f.write(prev_text)
+        f.write(text + '\n')
+
 
 def encode_dataset(examples, tokenizer, mode='train', max_length=512):
     # take a batch
@@ -150,16 +181,16 @@ def encode_dataset(examples, tokenizer, mode='train', max_length=512):
                 break
         # EXPERIMENT (to account for when OCR context and answer don't perfectly match):
         if not match:
+            max_ratio = 0
             for answer in answers[batch_index]:
-                for i in range(len(answer)):
-                    # drop the ith character from the answer
-                    answer_i = answer[:i] + answer[i+1:]
-                    # check if we can find this one in the context
-                    match, word_idx_start, word_idx_end = subfinder(words_example, answer_i.lower().split())
-                    if match:
-                        break
-                if match:
-                    break
+                curr_match, curr_word_idx_start, curr_word_idx_end, curr_ratio = fuzzy_matching(words_example, answer.lower().split())
+                if curr_match and curr_ratio > max_ratio:
+                    max_ratio = curr_ratio
+                    match, word_idx_start, word_idx_end = curr_match, curr_word_idx_start, curr_word_idx_end
+            # for logging
+            if match:
+                formatted_string = f"answer: {answers[batch_index]}| match: {match}| word_idx_start: {word_idx_start}| word_idx_end: {word_idx_end}| max_ratio: {max_ratio}| question: | {questions[batch_index]} | ref: {examples['ucsf_document_id'][batch_index]}_{examples['ucsf_document_page_no'][batch_index]}"
+                logging('log_fuzzy_matching.txt', formatted_string)
         # END OF EXPERIMENT
 
         if match:
@@ -175,9 +206,11 @@ def encode_dataset(examples, tokenizer, mode='train', max_length=512):
                 token_end_index -= 1
 
             word_ids = encoding.word_ids(batch_index)[token_start_index:token_end_index+1]
+            start_found, end_found = False, False
             for id in word_ids:
                 if id == word_idx_start:
                     start_positions.append(token_start_index)
+                    start_found = True
                     break
                 else:
                     token_start_index += 1
@@ -185,12 +218,17 @@ def encode_dataset(examples, tokenizer, mode='train', max_length=512):
             for id in word_ids[::-1]:
                 if id == word_idx_end:
                     end_positions.append(token_end_index)
+                    end_found = True
                     break
                 else:
                     token_end_index -= 1
 
-            if batch_index >= len(start_positions) or \
-                    batch_index >= len(end_positions):
+            # start position은 추가되었는데 end position은 추가되지 않은 경우
+            if start_found:
+                if not end_found:
+                    end_positions.append(token_start_index)
+            # start position도 추가되지 않은 경우
+            else:
                 match = False
 
         if not match:
