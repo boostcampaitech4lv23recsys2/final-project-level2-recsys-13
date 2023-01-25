@@ -83,15 +83,18 @@ class Trainer():
                     loss = outputs.loss
                     valid_loss += loss.item()
             valid_loss /= len(self.valid_data_loader)
-            print(f"epoch : {epoch:4} train loss : {train_loss:.4f} valid loss : {valid_loss:.4f}")
+            
+            print(f"epoch: {epoch:3}  train: {train_loss:.4f}  valid: {valid_loss:.4f}", end='')
             torch.save(self.model.state_dict(), 'saved/'+self.config.model+'_last.pt')
             if valid_loss < best_loss:
                 patience  = 0
                 best_loss = valid_loss
                 torch.save(self.model.state_dict(), 'saved/'+self.config.model+'_best.pt')
+                print(f"  best: {best_loss:.4f}  new best model!")
             
             else:
                 patience += 1
+                print(f"  best: {best_loss:.4f}")
                 if patience >= self.config.early_stop:
                     break
 
