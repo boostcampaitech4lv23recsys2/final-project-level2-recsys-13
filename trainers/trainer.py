@@ -20,6 +20,10 @@ class Trainer():
 
     def train(self):
         self.model.train()
+        if not os.path.exists('saved/'):
+            os.mkdir('saved/')
+        patience = 0
+        best_loss = float('inf')
         for epoch in range(self.epochs):
             train_loss = 0
             for idx, batch in enumerate(self.train_data_loader):
@@ -80,6 +84,16 @@ class Trainer():
                     valid_loss += loss.item()
             valid_loss /= len(self.valid_data_loader)
             print(f"epoch : {epoch:4} train loss : {train_loss:.4f} valid loss : {valid_loss:.4f}")
+            torch.save(self.model.state_dict(), 'saved/'+self.config.model+'_last.pt')
+            if valid_loss < best_loss:
+                patience  = 0
+                best_loss = valid_loss
+                torch.save(self.model.state_dict(), 'saved/'+self.config.model+'_best.pt')
+            
+            else:
+                patience += 1
+                if patience >= self.config.early_stop:
+                    break
 
 
     def validate(self):
