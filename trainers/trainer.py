@@ -21,7 +21,7 @@ class Trainer():
     def train(self):
         self.model.train()
         for epoch in range(self.epochs):
-            total_loss = 0
+            train_loss = 0
             for idx, batch in enumerate(self.train_data_loader):
                 input_ids       = batch["input_ids"].to(self.device)
                 attention_mask  = batch["attention_mask"].to(self.device)
@@ -48,10 +48,39 @@ class Trainer():
                 outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids,
                                      bbox=bbox, image=image, start_positions=start_positions, end_positions=end_positions)
                 loss = outputs.loss
-                total_loss += loss.item()
-                loss.backward()
-                self.optimizer.step()
-            print("Loss:", total_loss / len(self.train_data_loader))
+                train_loss += loss.item()
+            train_loss /= len(self.train_data_loader)
+                
+            valid_loss = 0
+            for idx, batch in enumerate(self.valid_data_loader):
+                input_ids       = batch["input_ids"].to(self.device)
+                attention_mask  = batch["attention_mask"].to(self.device)
+                token_type_ids  = batch["token_type_ids"].to(self.device)
+                bbox            = batch["bbox"].to(self.device)
+                image           = batch["image"].to(self.device)
+                start_positions = batch["start_positions"].to(self.device)
+                end_positions   = batch["end_positions"].to(self.device)
+                
+                input_ids       =       input_ids[start_positions != 0]
+                attention_mask  =  attention_mask[start_positions != 0]
+                token_type_ids  =  token_type_ids[start_positions != 0]
+                bbox            =            bbox[start_positions != 0]
+                image           =           image[start_positions != 0]
+                end_positions   =   end_positions[start_positions != 0]
+                start_positions = start_positions[start_positions != 0]
+
+                # 유효한 input이 없으면 continue
+                if len(start_positions) == 0:
+                    continue
+                
+                with torch.no_grad():
+                    outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids,
+                                     bbox=bbox, image=image, start_positions=start_positions, end_positions=end_positions)
+                    loss = outputs.loss
+                    valid_loss += loss.item()
+            valid_loss /= len(self.valid_data_loader)
+            print(f"epoch : {epoch:4} train loss : {train_loss:.4f} valid loss : {valid_loss:.4f}")
+
 
     def validate(self):
         self.model.eval()
