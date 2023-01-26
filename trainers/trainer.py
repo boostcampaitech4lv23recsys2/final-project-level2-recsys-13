@@ -53,6 +53,8 @@ class Trainer():
                                      bbox=bbox, image=image, start_positions=start_positions, end_positions=end_positions)
                 loss = outputs.loss
                 train_loss += loss.item()
+                loss.backward()
+                self.optimizer.step()
             train_loss /= len(self.train_data_loader)
                 
             valid_loss = 0
