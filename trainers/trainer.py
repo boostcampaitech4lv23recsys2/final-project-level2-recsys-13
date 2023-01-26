@@ -27,30 +27,12 @@ class Trainer():
         for epoch in range(self.epochs):
             train_loss = 0
             for idx, batch in enumerate(self.train_data_loader):
-                input_ids       = batch["input_ids"].to(self.device)
-                attention_mask  = batch["attention_mask"].to(self.device)
-                token_type_ids  = batch["token_type_ids"].to(self.device)
-                bbox            = batch["bbox"].to(self.device)
-                image           = batch["image"].to(self.device)
-                start_positions = batch["start_positions"].to(self.device)
-                end_positions   = batch["end_positions"].to(self.device)
+                self.optimizer.zero_grad()
                 
-                input_ids       =       input_ids[start_positions != 0]
-                attention_mask  =  attention_mask[start_positions != 0]
-                token_type_ids  =  token_type_ids[start_positions != 0]
-                bbox            =            bbox[start_positions != 0]
-                image           =           image[start_positions != 0]
-                end_positions   =   end_positions[start_positions != 0]
-                start_positions = start_positions[start_positions != 0]
-
-                # 유효한 input이 없으면 continue
-                if len(start_positions) == 0:
+                outputs = self.get_output(batch)
+                if outputs is None:
                     continue
                 
-                self.optimizer.zero_grad()
-
-                outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids,
-                                     bbox=bbox, image=image, start_positions=start_positions, end_positions=end_positions)
                 loss = outputs.loss
                 train_loss += loss.item()
                 loss.backward()
@@ -59,29 +41,10 @@ class Trainer():
                 
             valid_loss = 0
             for idx, batch in enumerate(self.valid_data_loader):
-                input_ids       = batch["input_ids"].to(self.device)
-                attention_mask  = batch["attention_mask"].to(self.device)
-                token_type_ids  = batch["token_type_ids"].to(self.device)
-                bbox            = batch["bbox"].to(self.device)
-                image           = batch["image"].to(self.device)
-                start_positions = batch["start_positions"].to(self.device)
-                end_positions   = batch["end_positions"].to(self.device)
-                
-                input_ids       =       input_ids[start_positions != 0]
-                attention_mask  =  attention_mask[start_positions != 0]
-                token_type_ids  =  token_type_ids[start_positions != 0]
-                bbox            =            bbox[start_positions != 0]
-                image           =           image[start_positions != 0]
-                end_positions   =   end_positions[start_positions != 0]
-                start_positions = start_positions[start_positions != 0]
-
-                # 유효한 input이 없으면 continue
-                if len(start_positions) == 0:
-                    continue
-                
                 with torch.no_grad():
-                    outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids,
-                                     bbox=bbox, image=image, start_positions=start_positions, end_positions=end_positions)
+                    outputs = self.get_output(batch)
+                    if outputs is None:
+                        continue
                     loss = outputs.loss
                     valid_loss += loss.item()
             valid_loss /= len(self.valid_data_loader)
@@ -105,17 +68,7 @@ class Trainer():
         self.model.eval()
         with torch.no_grad():
             for idx, batch in enumerate(self.valid_data_loader):
-                input_ids = batch["input_ids"].to(self.device)
-                attention_mask = batch["attention_mask"].to(self.device)
-                token_type_ids = batch["token_type_ids"].to(self.device)
-                bbox = batch["bbox"].to(self.device)
-                image = batch["image"].to(self.device)
-                start_positions = batch["start_positions"].to(self.device)
-                end_positions = batch["end_positions"].to(self.device)
-
-                outputs = self.model(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids,
-                                     bbox=bbox, image=image, start_positions=start_positions, end_positions=end_positions)
-                
+                outputs = self.get_output(batch)
                 predicted_start_idx, predicted_end_idx = predict_start_first(outputs)
                 
                 for i in range(batch['input_ids'].shape[0]):
@@ -132,3 +85,33 @@ class Trainer():
                 loss = outputs.loss
                 print("Loss:", loss.item())
 
+
+    def get_output(self, batch):
+        input_ids       = batch["input_ids"].to(self.device)
+        attention_mask  = batch["attention_mask"].to(self.device)
+        token_type_ids  = batch["token_type_ids"].to(self.device)
+        bbox            = batch["bbox"].to(self.device)
+        image           = batch["image"].to(self.device)
+        start_positions = batch["start_positions"].to(self.device)
+        end_positions   = batch["end_positions"].to(self.device)
+        
+        input_ids       = input_ids[start_positions != 0]
+        attention_mask  = attention_mask[start_positions != 0]
+        token_type_ids  = token_type_ids[start_positions != 0]
+        bbox            = bbox[start_positions != 0]
+        image           = image[start_positions != 0]
+        end_positions   = end_positions[start_positions != 0]
+        start_positions = start_positions[start_positions != 0]
+
+        # 유효한 input이 없으면 continue
+        if len(start_positions) == 0:
+            return None
+        
+        outputs = self.model(input_ids=input_ids, 
+                             attention_mask=attention_mask, 
+                             token_type_ids=token_type_ids,
+                             bbox=bbox, image=image, 
+                             start_positions=start_positions, 
+                             end_positions=end_positions)
+        
+        return outputs
