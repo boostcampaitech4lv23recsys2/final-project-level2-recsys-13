@@ -1,5 +1,6 @@
 import os
 import hydra
+import wandb
 from transformers import AutoModelForQuestionAnswering
 from utils.util import set_seed
 from trainers.trainer import Trainer
@@ -13,6 +14,7 @@ from datetime import datetime
 def main(config):
     # seed
     set_seed(config.seed)
+    wandb.init(project='docvqa', config=config)
 
     model = AutoModelForQuestionAnswering.from_pretrained(config.checkpoint)
 
