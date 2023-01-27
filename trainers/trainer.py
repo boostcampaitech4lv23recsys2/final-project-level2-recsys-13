@@ -3,7 +3,7 @@ import torch
 from utils.util import (predict, predict_start_first)
 from utils.metric import ANLS
 from transformers import AutoTokenizer
-
+import wandb
 
 class Trainer():
     def __init__(self, model, optimizer, config, data_loader,device):
@@ -62,6 +62,11 @@ class Trainer():
                 print(f"  best: {best_loss:.4f}")
                 if patience >= self.config.early_stop:
                     break
+            
+            wandb.log({
+                "train_loss": train_loss,
+                "valid_loss": valid_loss
+            })
 
 
     def validate(self):
