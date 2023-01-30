@@ -386,3 +386,44 @@ def predict_start_first(outputs):
         predicted_end_idx_list.append(predicted_end_idx)
     
     return predicted_start_idx_list, predicted_end_idx_list
+
+
+def load_textract_result(examples, config, mode):
+    ids = examples['ucsf_document_id']
+    nums = examples['ucsf_document_page_no']
+    files = [id + '_' + num + '.json' for id, num in zip(ids, nums)]
+    
+    batch_words, batch_boxes = [], []
+    for file in files:
+        each_words, each_boxes = [], []
+        path = os.path.join(config.ocr_path, file)
+        with open(path) as f:
+            ocr = json.load(f)
+        
+        for block in ocr['Blocks']:
+            if block['BlockType'] != 'WORD':
+                continue
+            
+            each_words.append(block['Text'])
+            x, y = [], []
+            for bbox in block['Geometry']['Polygon']:
+                x.append(int(bbox['X'] * 1000))
+                y.append(int(bbox['Y'] * 1000))
+            each_boxes.append([min(x), min(y), max(x), max(y)])
+    
+        batch_words.append(each_words)
+        batch_boxes.append(each_boxes)
+    
+    image_root_dir = config.data_dir + "/" + mode + "/"
+    images = [Image.open(image_root_dir + image_file).convert("RGB")
+              for image_file in examples['image']]
+    images = [image.resize(size=(224, 224), resample=Image.BILINEAR)
+              for image in images]
+    images = [np.array(image) for image in images]
+    images = [image[::-1, :, :] for image in images]
+    
+    examples['image'] = images
+    examples['words'] = batch_words
+    examples['boxes'] = batch_boxes
+
+    return examples

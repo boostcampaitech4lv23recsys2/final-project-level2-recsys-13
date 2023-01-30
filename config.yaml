@@ -19,3 +19,4 @@ early_stop: 10
 
 # inference.py
 model_name: "saved/layoutlmv22023-01-11 02:52:04.692288.pt"
+ocr_path: /opt/ml/input/data/textract/test/
