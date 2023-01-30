@@ -10,6 +10,7 @@ from utils.util import (
     get_ocr_words_and_boxes,
     encode_dataset,
     encode_with_stride,
+    load_textract_result,
 )
 
 
@@ -55,7 +56,8 @@ class DataLoader():
             feature_extractor = get_extractor(self.config)
             train_preprocess  = lambda x: get_ocr_words_and_boxes(x, self.config, feature_extractor, 'train')
             valid_preprocess  = lambda x: get_ocr_words_and_boxes(x, self.config, feature_extractor, 'val')
-            test_preprocess   = lambda x: get_ocr_words_and_boxes(x, self.config, feature_extractor, 'test')
+            # test_preprocess   = lambda x: get_ocr_words_and_boxes(x, self.config, feature_extractor, 'test')
+            test_preprocess   = lambda x: load_textract_result(x, self.config, 'test')
         else:
             train_preprocess  = lambda x: get_ocr_results(x, self.config, 'train')
             valid_preprocess  = lambda x: get_ocr_results(x, self.config, 'val')
