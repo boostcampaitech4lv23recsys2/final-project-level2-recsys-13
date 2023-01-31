@@ -241,7 +241,7 @@ def encode_dataset(examples, tokenizer, mode='train', max_length=512):
     return encoding
 
 
-def encode_with_stride(examples, tokenizer, mode='train', max_length=512, doc_stride=128):
+def encode_with_stride(examples, tokenizer, mode='train', max_length=512, doc_stride=256):
     # take a batch
     questions = examples['question']
     words = examples['words']
@@ -269,11 +269,11 @@ def encode_with_stride(examples, tokenizer, mode='train', max_length=512, doc_st
     
     start_positions = []
     end_positions = []
+    image = []
     answers = examples['answers']
     
     # example 하나가 여러 sequence에 대응하는 경우를 위해 매핑이 필요함.
     overflow_to_sample_mapping = encoding.pop("overflow_to_sample_mapping")
-    encoding['image'] = [examples['image'][0] for _ in range(len(overflow_to_sample_mapping))]
     
     for i, offsets in enumerate(overflow_to_sample_mapping):
         input_ids = encoding['input_ids'][i]
@@ -322,13 +322,16 @@ def encode_with_stride(examples, tokenizer, mode='train', max_length=512, doc_st
         if match:
             start_positions.append(token_start_index)
             end_positions.append(token_end_index)
+            image.append(examples['image'][offsets])
         
         else:
             start_positions.append(cls_index)
             end_positions.append(cls_index)    
+            image.append(examples['image'][offsets])
     
     encoding['start_positions'] = start_positions
     encoding['end_positions']   = end_positions
+    encoding['image'] = image
     
     return encoding
 
