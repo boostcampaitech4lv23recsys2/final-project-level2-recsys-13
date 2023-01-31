@@ -396,7 +396,7 @@ def load_textract_result(examples, config, mode):
     batch_words, batch_boxes = [], []
     for file in files:
         each_words, each_boxes = [], []
-        path = os.path.join(config.ocr_path, file)
+        path = os.path.join(config.ocr_path, mode, file)
         with open(path) as f:
             ocr = json.load(f)
         
