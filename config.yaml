@@ -12,7 +12,7 @@ num_proc: 4
 # train.py
 lr: 1e-4
 seed: 42
-batch: 128
+batch_size: 16
 max_len: 512
 epochs: 10
 early_stop: 10

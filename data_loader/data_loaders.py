@@ -92,9 +92,9 @@ class DataLoader():
             valid_encoded_dataset.set_format(type="torch")
             
             self.train_data_loader = torch.utils.data.DataLoader(
-                train_encoded_dataset, batch_size=config.batch_data, shuffle=True)
+                train_encoded_dataset, batch_size=config.batch_size, shuffle=True)
             self.valid_data_loader = torch.utils.data.DataLoader(
-                valid_encoded_dataset, batch_size=config.batch_data, shuffle=True)
+                valid_encoded_dataset, batch_size=config.batch_size, shuffle=True)
             
         elif mode == 'test':
             # features for test
@@ -115,4 +115,4 @@ class DataLoader():
             test_encoded_dataset.set_format(type="torch")
             
             self.test_data_loader = torch.utils.data.DataLoader(
-                test_encoded_dataset, batch_size=config.batch_data)
+                test_encoded_dataset, batch_size=config.batch_size)
