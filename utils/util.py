@@ -193,6 +193,29 @@ def subfinder(words_list, answer_list):
     else:
         return None, 0, 0
 
+def subfinder_similar(words_list, answer_list, question):
+    matches = []
+    start_indices = []
+    end_indices = []
+    question_set=set(question.split())
+    sim=[]
+    for idx, i in enumerate(range(len(words_list))):
+        if len(answer_list) == 0:
+            continue
+        if words_list[i] == answer_list[0] and words_list[i:i+len(answer_list)] == answer_list:
+            front=set(words_list[max(0,i-len(question_set)):i])
+            back=set(words_list[i+len(answer_list):min(i+len(question_set)+len(answer_list),len(words_list))])
+            front_recall=len(front&question_set)/(len(front)+1)
+            back_recall=len(back&question_set)/(len(back)+1)
+            sim.append(max(front_recall, back_recall))
+            matches.append(answer_list)
+            start_indices.append(idx)
+            end_indices.append(idx + len(answer_list) - 1)
+    if matches:
+        return sorted(zip(sim,matches))[-1][1], sorted(zip(sim,start_indices))[-1][1], sorted(zip(sim,end_indices))[-1][1]
+    else:
+        return None, 0, 0
+
 def subfinder_multi(words_list, answer_list):
     matches = []
     start_indices = []
