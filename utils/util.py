@@ -193,6 +193,22 @@ def subfinder(words_list, answer_list):
     else:
         return None, 0, 0
 
+def subfinder_multi(words_list, answer_list):
+    matches = []
+    start_indices = []
+    end_indices = []
+    for idx, i in enumerate(range(len(words_list))):
+        if len(answer_list) == 0:
+            continue
+        if words_list[i] == answer_list[0] and words_list[i:i+len(answer_list)] == answer_list:
+            matches.append(answer_list)
+            start_indices.append(idx)
+            end_indices.append(idx + len(answer_list) - 1)
+    if matches:
+        return matches, start_indices, end_indices
+    else:
+        return None, 0, 0
+
 def fuzzy_matching(words_example, answer):
     step = len(answer)
     max_ratio = 0
