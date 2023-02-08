@@ -27,6 +27,81 @@ def get_extractor(config):
     if config.model == 'layoutlmv2':
         return LayoutLMv2FeatureExtractor()
 
+def get_ocr_results_rearrange(examples, config, mode):
+    ocr_root_dir = config.data_dir + "/" + mode + "/ocr_results/"
+    image_root_dir = config.data_dir + "/" + mode + "/"
+    ids = examples['ucsf_document_id']
+    nums = examples['ucsf_document_page_no']
+
+    images = [Image.open(image_root_dir + image_file).convert("RGB")
+              for image_file in examples['image']]
+
+    images = [image.resize(size=(224, 224), resample=Image.BILINEAR)
+              for image in images]
+    images = [np.array(image) for image in images]
+
+    images = [image[::-1, :, :] for image in images]
+    
+    batch_words, batch_boxes = [], []
+    for i in range(len(ids)):
+        each_words, each_boxes = [], []
+        path = ocr_root_dir + ids[i] + "_" + nums[i] + ".json"
+        with open(path) as f:
+            ocr = json.load(f)
+
+        image_width, image_height = ocr['recognitionResults'][0]['width'], ocr['recognitionResults'][0]['height']
+        lines: list[dict] = ocr['recognitionResults'][0]['lines']
+        for line in lines:
+            words: list[dict] = line['words']
+            for word in words:
+                boundingBox: list[int] = word['boundingBox']
+                text: str = word['text']
+                x1, y1, x2, y2, x3, y3, x4, y4 = boundingBox
+                xs, ys = [x1, x2, x3, x4], [y1, y2, y3, y4]
+                x_max, x_min, y_max, y_min = max(xs), min(xs), max(ys), min(ys)
+                
+                left, upper, right, lower = normalize_bbox(
+                    [x_min, y_min, x_max, y_max], image_width, image_height)
+                assert all(0 <= (each) <= 1000 for each in [
+                    left, upper, right, lower])
+
+                each_words.append(text)
+                each_boxes.append([left, upper, right, lower])
+
+        new_words = []
+        new_boxes = []
+        groups = []
+        boundaries = []
+        x_=config.x_
+        y_=config.y_
+        for word, box in zip(each_words, each_boxes):
+            added = False
+            for idx, boundary in enumerate(boundaries):
+                gap_x=(box[2]-box[0])/len(word)*x_
+                gap_y=(box[3]-box[1])*y_
+                if boundary[0] - gap_x < box[0] < boundary[2] + gap_x and boundary[1] - gap_y < box[1] < boundary[3] + gap_y:
+                    groups[idx].append((word, box))
+                    added = True
+                    boundaries[idx] = [min(box[0], boundary[0]), min(box[1], boundary[1]), max(box[2], boundary[2]), max(box[3], boundary[3])]
+                    break
+            if not added:
+                boundaries.append(box)
+                groups.append([(word, box)])
+
+        for idx, group in enumerate(groups):
+            for word, box in group:
+                new_words.append(word)
+                new_boxes.append(box)
+        
+        batch_words.append(new_words)
+        batch_boxes.append(new_boxes)
+
+    examples['image'] = images
+    examples['words'] = batch_words
+    examples['boxes'] = batch_boxes
+
+    return examples
+
 def get_ocr_results(examples, config, mode):
     ocr_root_dir = config.data_dir + "/" + mode + "/ocr_results/"
     image_root_dir = config.data_dir + "/" + mode + "/"
