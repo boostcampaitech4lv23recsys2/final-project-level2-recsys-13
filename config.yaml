@@ -1,3 +1,24 @@
+# # python 3.8
+# data_dir: "/opt/ml/input/data/"
+# model: "layoutlmv2"
+# device: "cuda"
+# checkpoint: "microsoft/layoutlmv2-base-uncased"
+# use_ocr_library: False
+# debug: True
+# batch_data: 16
+# num_proc: 8
+
+# # train.py
+# lr: 5e-6
+# seed: 42
+# batch_size: 16
+# max_len: 512
+# epochs: 50
+# early_stop: 1
+
+# # inference.py
+# model_name: "saved/layoutlmv2_5e-6_paragraph.pt"
+
 # python 3.8
 
 data_dir: "/opt/ml/input/data/"
@@ -6,7 +27,7 @@ device: "cuda"
 checkpoint: "microsoft/layoutlmv2-base-uncased"
 use_ocr_library: False
 debug: True
-batch_data: 32
+batch_data: 16
 num_proc: 8
 
 # train.py
@@ -14,9 +35,9 @@ lr: 5e-6
 seed: 42
 batch_size: 16
 max_len: 512
-epochs: 300
-early_stop: 10
+epochs: 50
+early_stop: 1
 
 # inference.py
-model_name: "saved/layoutlmv2_best.pt"
-ocr_path: /opt/ml/input/data/textract/
+model_name: "/opt/ml/input/saved/layoutlmv2_best.pt"
+# ocr_path: /opt/ml/input/data/textract/

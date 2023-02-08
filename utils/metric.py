@@ -1,8 +1,5 @@
 import editdistance
 
-answers = ['coca cola', 'coca cola company']
-preds = ['the coca', 'cocacola', 'coca cola', 'cola', 'cat']
-
 def ANLS(answers: list, predicted: str):
     max_s = 0
     for answer in answers:
